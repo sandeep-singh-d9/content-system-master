@@ -1,0 +1,819 @@
+{% extends 'admin/master.html' %}
+
+{% block tail_js %}
+    {{ super() }}
+    <script type="text/javascript">
+        {% include "admin/add_csrftoken_to_all_forms.js" %}
+    </script>
+    <script src="https://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+<!--<script>
+	{% include "admin/all-Ui.js" %}
+</script>-->
+
+<style>
+  
+    {% include "admin/style.css"%}
+</style>
+<script>
+	var routinesArray = []
+	var contextualArray = []
+	var programUnitArray = []
+    var routineDbValue = []
+	var contextualDbValue = []
+	var appendedValue
+	var appendedIndividualValue
+	var dynamicUrnProgramUnit
+	var dynamicIndividualUrnProgramUnit
+	var dynamicIDTable
+	var dynamicIDIndividualTable
+
+	var scheduleLessonsArray = []
+	var individualLessonsArray = []
+	var pathWindowUrl
+	var uuid
+	var doaminTitle
+    var domainDataDatabase = []
+    var edit
+    var disableEdit
+   
+
+    
+var fullUrl = location.href;
+// console.log(testCASE,'sagh')
+var splitData = fullUrl.split('=')
+var windowIdValue= splitData[1].split('&')
+var windowUrl =windowIdValue[0]
+
+	$('#editTitle').hide()
+    $('#addNewRow').hide() 
+    $('#addNewRowTwo').hide()
+	 function getDomainReference() {
+		 $.ajax({
+			 type: 'GET',
+			 url: '/content-service/domain/references',
+			 contentType: 'application/json; charset=utf-8'
+		 }).done(function (msg) {
+			 /*console.log(msg, 'msg')*/
+
+			 $.each(msg.routines, function (i, v) {
+
+				routinesArray.push(v)
+			 })
+			 $.each(msg.contextual_identifiers, function (i, v) {
+				 /*console.log(v, 'v')*/
+				contextualArray.push(v)
+			 })
+			 $.each(msg.program_unit_instances, function (i , v) {
+				 programUnitArray.push(v)
+			 })
+			 $.each(contextualArray , function (i , v) {
+                 //console.log(v, 'hagsahsg')
+			  $('#contextualData').append('<li> <label> <input onclick="getContextual(this)" name="lesson1" type="radio" value="'+v.urn+'" data-name="'+v.text+'">'+v.text+' </label> </li>')
+			 })
+             $.each(routinesArray , function (i , v) {
+                // console.log(v, 'hagsahsg')
+			  $('#routineDataTest').append('<li> <label> <input onclick="getRoutine(this)" name="lesson1" type="radio" value="'+v.urn+'" data-name="'+v.text+'">'+v.text+' </label> </li>')
+			 })
+             
+			 $.each(programUnitArray, function (i,v){
+			     //console.log(v , 'asafsasf')
+				$('#scheduleLessons').append('<li id='+i+'><label><input onclick="getScheduleValue(this)" name="lesson1" type="radio" value="'+v.urn+'" data-name="'+v.internal_name+'">'+v.internal_name+'</label></li>')
+			 })
+			 $.each(programUnitArray, function (i,v){
+				$('#individualLessons').append('<li><label><input onclick="getIndividualValue(this)" name="lesson2" type="radio" value="'+v.urn+'" name="" data-name="'+v.internal_name+'">'+v.internal_name+'</label></li>')
+			 })
+             
+             getDomainContent() 
+
+		})
+	 }
+	 getDomainReference()
+     
+
+
+     function getDomainContent() {
+        $.ajax({
+            type: 'GET',
+            url: '/content-service/domain/urn:vida:domain:'+windowUrl,
+            contentType: 'application/json; charset=utf-8'
+        }).done(function (msg) {
+            // console.log(msg)
+            domainDataDatabase.push(msg)
+            onReloadGetData()
+        })
+        console.log(domainDataDatabase, 'domainDataDatabase')
+    }
+   
+     function onReloadGetData(){
+        // console.log(domainDataDatabase.schedule_lessons)
+        if(domainDataDatabase.length > 0){
+            $('#mainTableBody').find('#confirm_appointment_0').remove()
+            $('#mainTableTwoBody').find('#confirm_lessonTwo_0').remove()
+            $.each(domainDataDatabase, function(i, v){
+                $('#title').val(v.title)
+                doaminTitle = v.title
+                
+                $.each(routinesArray,function(ri,rv){
+                    if(v.routine_urn == rv.urn){
+                        $('#routineButton').empty();
+                        $('#routineButton').append(rv.text+'<span class="glyphicon glyphicon-triangle-bottom pull-right"></span>')
+                        $('ul[id=routineDataTest] li label input').each(function () {// id of ul
+                            var valueRutine = $(this).val()
+                            if(rv.urn == valueRutine){
+                                $(this).addClass('checkboxCheckedNew')
+                            }
+                        })
+                        routineDbValue.push(rv.urn)
+                    }
+                })
+                $.each(contextualArray,function(ci,cv){
+                    if(v.contextual_identifier_urn == cv.urn){
+                        $('#contextualButton').empty();
+                        $('#contextualButton').append(cv.text+'<span class="glyphicon glyphicon-triangle-bottom pull-right"></span>')
+                        $('ul[id=contextualData] li label input').each(function () {// id of ul
+                            var valueRutine = $(this).val()
+                            if(cv.urn == valueRutine){
+                                $(this).addClass('checkboxCheckedNew')
+                            }
+                        })
+                        contextualDbValue.push(cv.urn)
+                    }
+                })
+                $.each(v.schedule_lessons, function(si , sv){
+                    scheduleLessonsArray.push(sv)
+                    $('#mainTableBody').append('<tr id="confirm_appointment_' + si + '"> <td style="width: 30%;"onclick="getInsertPlace(this)" id="td' + si + '"><a class="input_border_add form-control" href="#lessonOne" data-toggle="modal" data-target="#lessonOne"></a> <input type="hidden" value="'+sv.program_unit_urn+'" class="lessonTitle"> </td><td id=""><a ><input onchange="getlessonOneValue(this)" class="completeLesson form-control" type="number" name="" value="'+sv.days_until_next_lesson_on_completion+'"></a></td><td id=""><a ><input onchange="getlessonOneValue(this)" class="incompleteLesson form-control" type="number" name="" value="'+sv.days_until_next_lesson_on_incomplete+'" ></a></td></tr>')
+                    $.each(programUnitArray, function (pi,pv){
+                    if(pv.urn == sv.program_unit_urn){
+                        $("#td" + si).find('a').append(pv.internal_name)
+                        }
+                    })
+                    $("#confirm_appointment_" + si ).find('#saveInput').addClass('hideBtn')
+	                $("#confirm_appointment_" + si ).find('#editInput').removeClass('hideBtn')
+					
+                })
+				var valueCase= (scheduleLessonsArray.length-1)
+				$("#confirm_appointment_" + valueCase ).find('.incompleteLesson').attr('onchange', 'getlessonOneValue(this), addNewRowTableOne()')
+                $.each(v.individual_lessons, function(li , lv){
+                    individualLessonsArray.push(lv)
+                    $('#mainTableTwoBody').append('<tr id="confirm_lessonTwo_' + li + '"><td style="width: 30%;" onclick="getInsertPlacelessonTwo(this)" id="lessonTwo' + li + '"><a class="input_border_add form-control" href="#lessonTwo" data-toggle="modal" data-target="#lessonTwo">&nbsp;</a><input type="hidden" value="'+lv.program_unit_urn+'" class="lessonTitle"></td><td id=""><a ><input  onchange="getlessonTwoValue(this)" class="completeLesson form-control" type="number" name="" value="'+lv.send_days_after_start+'" ></a></td><td id=""><a ><input  onchange="getlessonTwoValue(this)" class="incompleteLesson form-control" type="number" name="" value="'+lv.expires_after_days+'" ></a></td><td id=""><a ><input onchange="getlessonTwoValue(this)" class="intervelDays form-control" type="number" name="" value="'+lv.repetition_interval_days+'" ></a></td></tr>')
+                    $.each(programUnitArray, function (pi,pv){
+                    if(pv.urn == lv.program_unit_urn){
+                        $("#lessonTwo" + li).find('a').append(pv.internal_name)
+                        }
+                    })
+                    $("#confirm_lessonTwo_" + li ).find('#saveInput').addClass('hideBtn')
+	                $("#confirm_lessonTwo_" + li ).find('#editInput').removeClass('hideBtn')
+                })
+				var valuedata= (individualLessonsArray.length-1)
+				$("#confirm_lessonTwo_" + valuedata ).find('.intervelDays').attr('onchange','getlessonTwoValue(this), addNewRowTableTwo()')
+               
+            })
+            
+        }
+    }
+
+	 //console.log(programUnitArray, 'program')
+	 //console.log(contextualArray, 'contextual')
+	// console.log(routinesArray , 'routine')
+
+    function getRoutine (e) {
+        $('#routineButton').empty()
+        //console.log( e.value,'routine')
+        routineDbValue = []
+        routineDbValue.push(e.value)
+        var name = e.getAttribute('data-name')
+        $('#routineButton').append(name+'<span class="glyphicon glyphicon-triangle-bottom pull-right"></span>')
+    }
+
+    function getContextual (e) {
+	    //console.log(value);
+        $('#contextualButton').empty()
+	    contextualDbValue = []
+        contextualDbValue.push(e.value)
+       var name = e.getAttribute('data-name')
+
+       $('#contextualButton').append(name+'<span class="glyphicon glyphicon-triangle-bottom pull-right"></span>')
+       /* console.log(contextualDbValue, 'cccc')*/
+    }
+
+     function getScheduleValue (e){
+		 console.log(e.getAttribute('data-name'), 'hdfasdfa')
+        
+		 appendedValue = e.getAttribute('data-name')
+		 dynamicUrnProgramUnit = e.value
+		// var dynamicId = e.id
+
+		// console.log(("#"+dynamicId).find('input').attr('name'))
+		 $('#'+dynamicIDTable).find('a').empty()
+		 $('#'+dynamicIDTable).find('a').append(appendedValue)
+		 $('#'+dynamicIDTable).find('input').attr('value',dynamicUrnProgramUnit )
+		 /*$('#tda').append(appendedValue)*/
+		 getlessonOneValue(dynamicIDTable)
+		  appendedValue = ''
+		 /*$('#tda').a*/
+		 
+	}
+	function getIndividualValue (e) {
+		appendedIndividualValue = e.getAttribute('data-name')
+		dynamicIndividualUrnProgramUnit =  e.value
+		console.log(dynamicIndividualUrnProgramUnit, 'shagsasg')
+
+		$('#'+dynamicIDIndividualTable).find('a').empty()
+		$('#'+dynamicIDIndividualTable).find('a').append(appendedIndividualValue)
+		$('#'+dynamicIDIndividualTable).find('input').attr('value',dynamicIndividualUrnProgramUnit )
+		getlessonTwoValue(dynamicIDIndividualTable)
+		appendedIndividualValue = ''
+	}
+     function getInsertPlace(e){
+	  /*console.log(appendedValue, 'safsgas')*/
+		 dynamicIDTable = e.id
+		 console.log(dynamicIDTable)
+         var  val = dynamicIDTable.split('d')
+		 var indexOF = val[1]
+         
+		 $('ul[id=scheduleLessons] li label input').each(function () {// id of ul
+            $(this).attr('checked',false)
+            $(this).removeClass('checkboxCheckedNew')
+        })
+		$.each(scheduleLessonsArray,function(i,v){
+			$('ul[id=scheduleLessons] li label input').each(function () {// id of ul
+				var valueRutine = $(this).val()
+				if(v.program_unit_urn == valueRutine){
+				if(indexOF == i) 
+					$(this).addClass('checkboxCheckedNew')
+				}
+			})
+		})
+		 $('#'+dynamicIDTable).find('input').removeAttr('readonly')
+		 $('#'+dynamicIDTable).find('button').removeClass('hideBtn')
+  }
+  function getInsertPlacelessonTwo (e) {
+	dynamicIDIndividualTable = e.id
+	console.log(dynamicIDIndividualTable)
+	var  val = dynamicIDIndividualTable.split('o')
+	var indexOF = val[2]
+	console.log(indexOF)
+	$('ul[id=individualLessons] li label input').each(function () {// id of ul
+				$(this).attr('checked',false)
+				$(this).removeClass('checkboxCheckedNew')
+			})
+	$.each(individualLessonsArray,function(i,v){
+		$('ul[id=individualLessons] li label input').each(function () {// id of ul
+			var valueRutine = $(this).val()
+			if(v.program_unit_urn == valueRutine){
+				console.log(v, 'value')
+				if(indexOF == i) {
+					$(this).addClass('checkboxCheckedNew')
+				}
+			}
+		})
+	})
+  }
+
+
+
+
+  function getlessonOneValue (e) {
+	  console.log(e)
+	  if (e.length != undefined){
+		  var id = $("#"+e).parent().attr('id');
+		  console.log(id, 'hereID')
+		 var  val = e.split('d')
+		 var arrayValue = val[1]
+		  console.log(arrayValue)		  
+		  console.log($('#'+e).find('.lessonTitle').attr('value'))
+		console.log($('#'+id).find('.completeLesson').attr('value'))
+		console.log($('#'+id).find('.incompleteLesson').attr('value'))
+		var lessonOneTitle = $('#'+e).find('.lessonTitle').attr('value')
+		var lessonOneComplete = $('#'+id).find('.completeLesson').attr('value')
+		var lessonOneInCompleteLesson = $('#'+id).find('.incompleteLesson').attr('value')
+		var  indexOF=arrayValue
+		var staticOrder =indexOF
+		if(typeof scheduleLessonsArray[indexOF] === 'undefined'){
+		scheduleLessonsArray.push({
+			days_until_next_lesson_on_completion:parseInt(lessonOneComplete),
+			days_until_next_lesson_on_incomplete:parseInt(lessonOneInCompleteLesson),
+			order:parseInt(staticOrder),
+			program_unit_urn: lessonOneTitle
+		})
+		}else{
+			scheduleLessonsArray.splice(indexOF , 1 , {days_until_next_lesson_on_completion:parseInt(lessonOneComplete),
+			days_until_next_lesson_on_incomplete:parseInt(lessonOneInCompleteLesson),
+			order:parseInt(staticOrder),
+			program_unit_urn: lessonOneTitle})
+		}
+		console.log(scheduleLessonsArray, 'scheduleLessonsArray')
+	  }else{
+		 
+		var TrIdCardOne = e.parentNode.parentNode.parentNode.id
+		var arrayValue = TrIdCardOne.split('_')
+		console.log(arrayValue, 'sasas')
+		// $('#'+TrIdCardOne).addClass('borderRemove')
+		console.log($('#'+TrIdCardOne).find('.lessonTitle').attr('value'))
+		console.log($('#'+TrIdCardOne).find('.completeLesson').val())
+		console.log($('#'+TrIdCardOne).find('.incompleteLesson').val())
+		var lessonOneTitle = $('#'+TrIdCardOne).find('.lessonTitle').attr('value')
+		
+		var lessonOneComplete = $('#'+TrIdCardOne).find('.completeLesson').val()
+		$('#'+TrIdCardOne).find('.completeLesson').attr('value',lessonOneComplete)
+		var lessonOneInCompleteLesson = $('#'+TrIdCardOne).find('.incompleteLesson').val()
+		$('#'+TrIdCardOne).find('.incompleteLesson').attr('value',lessonOneInCompleteLesson)
+		var  indexOF=arrayValue[2]
+		var staticOrder =indexOF
+		if(typeof scheduleLessonsArray[indexOF] === 'undefined'){
+		scheduleLessonsArray.push({
+			days_until_next_lesson_on_completion:parseInt(lessonOneComplete),
+			days_until_next_lesson_on_incomplete:parseInt(lessonOneInCompleteLesson),
+			order:parseInt(staticOrder),
+			program_unit_urn: lessonOneTitle
+		})
+		}else{
+			scheduleLessonsArray.splice(indexOF , 1 , {days_until_next_lesson_on_completion:parseInt(lessonOneComplete),
+			days_until_next_lesson_on_incomplete:parseInt(lessonOneInCompleteLesson),
+			order:parseInt(staticOrder),
+			program_unit_urn: lessonOneTitle})
+		}
+		
+		console.log(scheduleLessonsArray, 'scheduleLessonsArray')
+		console.log(e.getAttribute('class'), 'asas')
+		var className =  e.getAttribute('class')
+		var newCase = $(e).hasClass(className)
+		if(newCase = true){
+			$(e).attr('onchange','getlessonOneValue(this)')
+		} 
+		$('#'+TrIdCardOne).find('#saveInput').addClass('hideBtn')
+		$('#'+TrIdCardOne).find('#editInput').removeClass('hideBtn')
+		$('#addNewRow').show() 
+	  }
+	  
+    }
+
+
+//   For third Card
+
+  	function getlessonTwoValue (e) {
+		console.log(e)
+		if (e.length != undefined){
+			var id = $("#"+e).parent().attr('id');
+			console.log(id, 'hereID')
+			var  val = e.split('o')
+			var arrayValue = val[2]
+			console.log(arrayValue, 'sasssas')	
+		    console.log($('#'+e).find('.lessonTitle').attr('value'))
+			console.log($('#'+id).find('.completeLesson').attr('value'))
+			console.log($('#'+id).find('.incompleteLesson').attr('value'))
+			console.log($('#'+id).find('.intervelDays').attr('value'))
+			var lessonTwoTitle = $('#'+e).find('.lessonTitle').attr('value')
+			var lessonTwoComplete = $('#'+id).find('.completeLesson').attr('value')
+			var lessonTwoInCompleteLesson = $('#'+id).find('.incompleteLesson').attr('value')
+			var lessonTwoIntervalDays = $('#'+id).find('.intervelDays').attr('value')
+			var indexOF=arrayValue
+
+			if(typeof individualLessonsArray[indexOF] === 'undefined'){
+				individualLessonsArray.push({
+					send_days_after_start:parseInt(lessonTwoComplete),
+					expires_after_days:parseInt(lessonTwoInCompleteLesson),
+					repetition_interval_days:parseInt(lessonTwoIntervalDays),
+					program_unit_urn: lessonTwoTitle
+				})
+			}else{
+				individualLessonsArray.splice(indexOF , 1, { send_days_after_start:parseInt(lessonTwoComplete),
+					expires_after_days:parseInt(lessonTwoInCompleteLesson),
+					repetition_interval_days:parseInt(lessonTwoIntervalDays),
+					program_unit_urn: lessonTwoTitle}) 
+			}
+			console.log(individualLessonsArray, 'individualLessonsArray')
+		}else{
+				var dynamicTrId = e.parentNode.parentNode.parentNode.id
+				var arrayValue = dynamicTrId.split('_')
+				// $('#'+dynamicTrId).addClass('borderRemove')
+				console.log($('#'+dynamicTrId).find('.lessonTitle').attr('value'))
+				console.log($('#'+dynamicTrId).find('.completeLesson').val())
+				console.log($('#'+dynamicTrId).find('.incompleteLesson').val())
+				console.log($('#'+dynamicTrId).find('.intervelDays').val())
+				var lessonTwoTitle = $('#'+dynamicTrId).find('.lessonTitle').attr('value')
+				var lessonTwoComplete = $('#'+dynamicTrId).find('.completeLesson').val()
+				$('#'+dynamicTrId).find('.completeLesson').attr('value',lessonTwoComplete)
+				var lessonTwoInCompleteLesson = $('#'+dynamicTrId).find('.incompleteLesson').val()
+				$('#'+dynamicTrId).find('.incompleteLesson').attr('value',lessonTwoInCompleteLesson)
+				var lessonTwoIntervalDays = $('#'+dynamicTrId).find('.intervelDays').val()
+				$('#'+dynamicTrId).find('.intervelDays').attr('value',lessonTwoIntervalDays)
+				var  indexOF=arrayValue[2]
+				if(typeof individualLessonsArray[indexOF] === 'undefined'){
+					individualLessonsArray.push({
+						send_days_after_start:parseInt(lessonTwoComplete),
+						expires_after_days:parseInt(lessonTwoInCompleteLesson),
+						repetition_interval_days:parseInt(lessonTwoIntervalDays),
+						program_unit_urn: lessonTwoTitle
+					})
+				}else{
+					individualLessonsArray.splice(indexOF , 1, { send_days_after_start:parseInt(lessonTwoComplete),
+						expires_after_days:parseInt(lessonTwoInCompleteLesson),
+						repetition_interval_days:parseInt(lessonTwoIntervalDays),
+						program_unit_urn: lessonTwoTitle}) 
+				}
+				console.log(individualLessonsArray, 'individualLessonsArray')
+				console.log(e.getAttribute('class'), 'asas')
+		    	var className =  e.getAttribute('class')
+		  		var newCase = $(e).hasClass(className)
+				if(newCase = true){
+					$(e).attr('onchange','getlessonTwoValue(this)')
+				} 
+			}
+  	}
+
+
+  function editTable (e) {
+    edit = 'clicked'
+    if(disableEdit != undefined) {
+        alert('Please save another then Add!');
+        return false;
+    }
+    disableEdit = 'clicked'
+	//   alert('sdas')
+        var dynamicTrId = e.parentNode.parentNode.id
+        console.log(dynamicTrId)
+        var arrayValue = dynamicTrId.split('_')
+        var  indexOF=arrayValue[2]
+      $('ul[id=scheduleLessons] li label input').each(function () {// id of ul
+            $(this).attr('checked',false)
+            $(this).removeClass('checkboxCheckedNew')
+        })
+      $.each(scheduleLessonsArray,function(i,v){
+        $('ul[id=scheduleLessons] li label input').each(function () {// id of ul
+            var valueRutine = $(this).val()
+            if(v.program_unit_urn == valueRutine){
+               if(indexOF == i) 
+                $(this).addClass('checkboxCheckedNew')
+            }
+        })
+      })
+	
+	$('#'+dynamicTrId).find('#saveInput').removeClass('hideBtn')
+	$('#'+dynamicTrId).find('#editInput').addClass('hideBtn')
+    // $('#'+dynamicTrId).removeClass('borderRemove')
+  }
+
+
+  	function  saveAllData(){
+		if(routineDbValue != '' && contextualDbValue!= '' && doaminTitle!= '' ){
+			alert('not null ')
+		
+			var domainPutData = {
+				routine_urn:routineDbValue[0],
+				contextual_identifier_urn: contextualDbValue[0],
+				schedule_lessons: scheduleLessonsArray,
+				individual_lessons: individualLessonsArray,
+				title: doaminTitle,
+			};
+			console.log(domainPutData, 'domainPutData')
+
+			saveRuleToDb(domainPutData)
+		}else{
+			alert('Title, Routine And Contextual Identifier is Required')
+		}	
+	}
+//***-------------------For uuid-------------*>
+function uuidv4() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+
+function getWindowUrl() {
+	 pathWindowUrl = window.location.pathname
+    //  console.log(pathWindowUrl, 'sasasa')
+}
+getWindowUrl()
+if (pathWindowUrl == '/content-service/admin/skilldomain/new/'){
+	//console.log('here')
+	//console.log(uuidv4())
+	uuid = uuidv4()
+}
+if(pathWindowUrl == '/content-service/admin/skilldomain/edit/'){
+    uuid = windowUrl
+}
+function getTitle(){
+	//console.log(e.parentNode.id)
+	// var titleId = e.parentNode.id
+	// $('#'+titleId).addClass('borderRemove')
+	doaminTitle = $('#title').val()
+	// $('#saveTitle').hide()
+	// $('#editTitle').show()
+	console.log(doaminTitle,'asas')
+}
+
+
+function hideEdit(e) {
+	var titleId = e.parentNode.id
+	$('#'+titleId).removeClass('borderRemove')
+	$('#saveTitle').show()
+	$('#editTitle').hide()
+}
+
+function saveRuleToDb (domainData) {
+	//console.log('/content-service/domain/urn:vida:domain:'+uuid);
+	$.ajax({
+        type: 'PUT',
+        url: '/content-service/domain/urn:vida:domain:'+uuid,
+        data: JSON.stringify(domainData),
+        dataType: 'json',
+        contentType: 'application/json; charset=utf-8'
+    }).done(function (msg) {
+       alert(msg)
+	})
+    // after success response take this on done function 
+	alert('saved')
+	window.location = '/content-service/admin/skilldomain/'
+}
+
+function addNewRowTableOne(){
+
+    $('ul[id=scheduleLessons] li label input').each(function () {// id of ul
+            $(this).attr('checked',false)
+        })
+   var length = scheduleLessonsArray.length
+   ///console.log(scheduleLessonsArray ,'addnEW1')
+   
+   $('#mainTableBody').append('<tr id="confirm_appointment_' + length + '"> <td style="width: 30%;"onclick="getInsertPlace(this)" id="td' + length + '"><a class="input_border_add form-control" href="#lessonOne" data-toggle="modal" data-target="#lessonOne">&nbsp;</a> <input type="hidden" value="123" class="lessonTitle"> </td><td id=""><a ><input onchange="getlessonOneValue(this)" class="completeLesson form-control" type="number" name="" value=""></a></td><td id=""><a ><input onchange="getlessonOneValue(this), addNewRowTableOne()" class="incompleteLesson form-control" type="number" name="" value="" ></a></td></tr>')
+}
+function addNewRowTableTwo () {
+    var length = individualLessonsArray.length
+   // console.log(individualLessonsArray, 'addnEW2')
+    $('#mainTableTwoBody').append('<tr id="confirm_lessonTwo_' + length + '"><td style="width: 30%;" onclick="getInsertPlacelessonTwo(this)" id="lessonTwo' + length + '"><a class="input_border_add form-control" href="#lessonTwo" data-toggle="modal" data-target="#lessonTwo">&nbsp;</a><input type="hidden" value="123" class="lessonTitle"></td><td id=""><a><input  onchange="getlessonTwoValue(this)"  class="completeLesson form-control" type="number" name="" value="" ></a></td><td id=""><a ><input  onchange="getlessonTwoValue(this)" class="incompleteLesson form-control" type="number" name="" value="" ></a></td><td id=""><a ><input  onchange="getlessonTwoValue(this), addNewRowTableTwo()" class="intervelDays form-control" type="number" name="" value="" ></a></td></tr>')
+}
+
+
+
+function dragScheduleLessons() {
+    $(function () {
+        var manipulate, oldIndex;
+        $("#mainTableBody").sortable({
+            start: function (event, ui) {
+                var updt = ui.item.index();
+                manipulate = updt;
+                oldIndex = scheduleLessonsArray[manipulate];
+            },
+            update: function (e, ui) {
+                var newIndex = ui.item.index();
+                scheduleLessonsArray.splice(manipulate, 1);
+                scheduleLessonsArray.splice(newIndex, 0, oldIndex);
+                rankTest = newIndex
+
+                $("#mainTableBody tr").each(function (i, elm) {
+
+                    $elm = $(elm); // cache the jquery object
+
+                    //console.log($elm.context.innerHTML)
+                    $elm.attr("id", 'confirm_appointment_' + $elm.index("#mainTableBody tr"));
+                });
+                $.each(scheduleLessonsArray, function (iNew, vNew) {
+                    scheduleLessonsArray.splice(iNew, 1, { days_until_next_lesson_on_completion: vNew.days_until_next_lesson_on_completion,days_until_next_lesson_on_incomplete:vNew.days_until_next_lesson_on_incomplete,program_unit_urn:vNew.program_unit_urn, order: iNew })
+                })
+            }
+        });
+        $("#drag_div").disableSelection();
+
+
+    });
+}
+dragScheduleLessons()
+
+
+$(document).ready(function () {
+    $("#routineSearchContent").on("keyup", function () {
+        var value = $(this).val().toLowerCase();
+        $("#routineDataTest li").filter(function () {
+            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+        });
+    });
+    $("#contextualSearchContent").on("keyup", function () {
+        var value = $(this).val().toLowerCase();
+        $("#contextualData li").filter(function () {
+            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+        });
+    });
+
+	$("#scheduleLessonsSearch").on("keyup", function () {
+        var value = $(this).val().toLowerCase();
+        $("#scheduleLessons li").filter(function () {
+            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+        });
+    });
+
+	$("#individualLessonsSearch").on("keyup", function () {
+        var value = $(this).val().toLowerCase();
+        $("#individualLessons li").filter(function () {
+            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+        });
+    });
+});
+
+
+
+
+</script>
+    
+
+
+
+
+{% endblock %}
+{% block body %}
+{{ super() }}
+
+<div class="container">
+	        <div class="col-sm-12 form-inline" id="domainTitleValue">
+				<div class="form-group col-sm-12" >
+					<label for="title">Title:</label>
+					<input style="width: 50%" type="text" onchange="getTitle()" class="form-control placementTest " id="title" placeholder="Enter title" name="title">
+				</div>
+<!-- 
+				<button type="button" id="saveTitle" onclick="getTitle(this)" class="btn btn-default">Add Title</button>
+				<button type="button" id="editTitle" onclick="hideEdit(this)" class="btn btn-default">Edit Title</button> -->
+			</div>
+		<div class="col-sm-12">
+
+			<div class="main_div first_card">
+				<div class="panel panel-primary">
+					<div class="panel-heading">Configure Default Habit</div>
+					<div class="panel-body">
+						<div class="col-sm-12">
+							<div class="col-md-1"></div>
+							<div class="col-sm-4 pull-left">
+									<!-- <select onchange="getContextual(this.value)" class="form-control selectpicker" id="select-country1" data-live-search="true">
+										<option data-tokens="china">Select a contextual identifier</option>
+										  {% for contextualData in contextual_identifier_values %}
+										<option  value={{contextualData.urn}}>{{contextualData.text}}</option>
+										{% endfor %}
+									</select> -->
+									<div class="dropdown">
+										<button class="btn dropdown-toggle" type="button" id="contextualButton" data-toggle="dropdown">Select a contextual identifier
+										<span class="glyphicon glyphicon-triangle-bottom pull-right"></span></button>
+										<ul class="dropdown-menu">
+											<li>
+												<div class="bs-searchbox">
+												<input id="contextualSearchContent" type="text" class="form-control" autocomplete="off">
+												</div>
+											</li>
+											<li>
+												<div>
+												<ul class="inner_select" id="contextualData"> 
+													
+												</ul>
+												</div>
+											</li>
+										</ul>
+									</div>
+							</div>
+							<div class="col-md-2"></div>
+							<div class="col-sm-4 ">
+                                <div class="dropdown">
+                                    <button class="btn dropdown-toggle" type="button" id="routineButton" data-toggle="dropdown">Select a Routine
+                                    <span class="glyphicon glyphicon-triangle-bottom pull-right"></span></button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <div class="bs-searchbox">
+                                            <input id="routineSearchContent" type="text" class="form-control" autocomplete="off">
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <div>
+                                            <ul class="inner_select" id="routineDataTest"> 
+                                               
+                                            </ul>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+							</div>							
+						</div>
+					</div>
+				</div>
+			</div>
+
+
+			<div class="main_div">
+				<div class="panel panel-primary">
+					<div class="panel-heading">Configure Schedule Lessons</div>
+					<div class="panel-body">
+						<div>
+							<table class="table table-hover table-fixed">
+								<thead >
+							      	<tr>
+							        	<th style="vertical-align: middle; width: 30%;">Lesson Title</th>
+							        	<th>Days Until Next Lesson <br/> Completion</th>
+                                        <th>Days Until Next Lesson <br/> inCompletion</th>
+                                        <!-- <th style="width: 15%;"><input type="button"  id ="addNewRow" class="btn btn-primary"  value='Add-New-Row' onclick="addNewRowTableOne(this)"></th> -->
+							      	</tr>
+							    </thead>
+							    <tbody id='mainTableBody'>
+							      	<tr id='confirm_appointment_0'>
+										<td  style="width: 30%;"onclick="getInsertPlace(this)" id="td0"><a class="input_border_add form-control"  href="#lessonOne" data-toggle="modal" data-target="#lessonOne">&nbsp;</a>
+										<input type="hidden" onchange="getlessonOneValue(this)" value="123" class="lessonTitle">
+										</td>
+										<td  id=""><a ><input onchange="getlessonOneValue(this)" class="completeLesson form-control" type="number" name="" value=""></a></td>
+										<td id=""><a ><input  onchange="getlessonOneValue(this), addNewRowTableOne()" class="incompleteLesson form-control" type="number" name="" value="" ></a></td>
+							      	</tr>
+							    </tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+
+
+			<div class="main_div">
+				<div class="panel panel-primary">
+					<div class="panel-heading">Configure Individual Lessons</div>
+					<div class="panel-body">
+						<div>
+							<table class="table table-hover table-fixed">
+								<thead >
+							      	<tr>
+							        	<th style="vertical-align: middle ;width: 30%; ">Lesson Title</th>
+							        	<th> Send Days After Start <br/> Completion</th>
+							        	<th> Expires After Days <br/> inCompletion</th>
+                                        <th>Repetition  <br/> Interval Days</th>
+                                        <!-- <th style="width: 15%;"><input type="button"  id ="addNewRow" class="btn btn-primary"  value='Add-New-Row' onclick="addNewRowTableTwo(this)"></th> -->
+							      	</tr>
+							    </thead>
+							    <tbody  id='mainTableTwoBody'>
+							      	<tr id= 'confirm_lessonTwo_0'>
+										<td style="width: 30%;" onclick="getInsertPlacelessonTwo(this)" id="lessonTwo0"><a class="input_border_add form-control" href="#lessonTwo" data-toggle="modal" data-target="#lessonTwo">&nbsp;</a>
+										<input type="hidden" value="123" class="lessonTitle">
+										</td>
+										<td id=""><a ><input onchange="getlessonTwoValue(this)" class="completeLesson form-control" type="number" name="" value="" ></a></td>
+										<td id=""><a ><input onchange="getlessonTwoValue(this)" class="incompleteLesson form-control" type="number" name="" value="" ></a></td>
+										<td  id=""><a ><input  onchange="getlessonTwoValue(this), addNewRowTableTwo()" class="intervelDays form-control" type="number" name="" value="" ></a></td>
+										<!-- <td style="width: 15%">
+										<input type="button"  id ="saveInput"  class="btn btn-primary"  value='Save-Value' onclick="getlessonTwoValue(this)">
+										<input type="button"  id="editInput" class="btn btn-primary hideBtn"  value='Edit' onclick="editTable(this)">
+										</td> -->
+							      	</tr>
+							    </tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<button onclick="saveAllData()" class="btn btn-primary">Save</button>
+
+		</div>
+</div>
+
+
+	<!-- Button trigger modal -->
+	<!-- Schedule Lessons Modal -->
+		<div class="modal fade" id="lessonOne" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+			<div class="modal-dialog modal-sm" role="document">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" style="color: #fff;">&times;</span></button>
+						<h4 class="modal-title">Configure Schedule Lessons</h4>
+					</div>
+					<div class="modal-body">
+						<ul class="search">
+							<li>
+								<input   id="scheduleLessonsSearch" type="text" class="form-control" placeholder="Search...">
+							</li>
+						</ul>
+						<div class="max_content">
+							<ul id="scheduleLessons">
+							</ul>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	<!-- End Schedule Lessons Modal -->
+
+	<!-- Individual Lessons Modal -->
+	<div class="modal fade" id="lessonTwo" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+		<div class="modal-dialog modal-sm" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" style="color: #fff;">&times;</span></button>
+					<h4 class="modal-title">Configure Individual Lessons</h4>
+				</div>
+				<div class="modal-body">
+					<ul class="search">
+						<li>
+							<input  id="individualLessonsSearch" type="text" class="form-control" placeholder="Search...">
+						</li>
+					</ul>
+					<div class="max_content">
+						<ul id="individualLessons">
+
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+<!-- End Individual Lessons Modal -->
+
+{% endblock %}
