@@ -1,0 +1,218 @@
+{% extends 'admin/master.html' %}
+
+{% block tail_js %}
+    {{ super() }}
+    <script type="text/javascript">
+        {% include "admin/add_csrftoken_to_all_forms.js" %}
+    </script>
+    <script src="https://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+<!--<script>
+	{% include "admin/all-Ui.js" %}
+</script>-->
+
+<style>
+
+    {% include "admin/style.css"%}
+</style>
+<script>
+
+    {% include "admin/domain.js"%}
+
+</script>
+
+
+
+
+
+{% endblock %}
+{% block body %}
+{{ super() }}
+
+<div class="container">
+	        <div class="col-sm-12 form-inline" id="domainTitleValue">
+				<div class="form-group col-sm-12" >
+					<label for="title">Title:</label>
+					<input style="width: 50%" type="text" onchange="getTitle()" class="form-control placementTest " id="title" placeholder="Enter title" name="title">
+				</div>
+<!--
+				<button type="button" id="saveTitle" onclick="getTitle(this)" class="btn btn-default">Add Title</button>
+				<button type="button" id="editTitle" onclick="hideEdit(this)" class="btn btn-default">Edit Title</button> -->
+			</div>
+
+						<div class="col-sm-12" style="margin-top: 20px">
+							<div class="col-md-1"></div>
+							<div class="col-sm-4 pull-left">
+									<!-- <select onchange="getContextual(this.value)" class="form-control selectpicker" id="select-country1" data-live-search="true">
+										<option data-tokens="china">Select a contextual identifier</option>
+										  {% for contextualData in contextual_identifier_values %}
+										<option  value={{contextualData.urn}}>{{contextualData.text}}</option>
+										{% endfor %}
+									</select> -->
+									<div class="dropdown">
+										<button class="btn dropdown-toggle" type="button" id="contextualButton" data-toggle="dropdown">Select a contextual identifier
+										<span class="glyphicon glyphicon-triangle-bottom pull-right"></span></button>
+										<ul class="dropdown-menu">
+											<li>
+												<div class="bs-searchbox">
+												<input id="contextualSearchContent" type="text" class="form-control" autocomplete="off">
+												</div>
+											</li>
+											<li>
+												<div>
+												<ul class="inner_select" id="contextualData">
+
+												</ul>
+												</div>
+											</li>
+										</ul>
+									</div>
+							</div>
+							<div class="col-md-2"></div>
+							<div class="col-sm-4 ">
+                                <div class="dropdown">
+                                    <button class="btn dropdown-toggle" type="button" id="routineButton" data-toggle="dropdown">Select a Routine
+                                    <span class="glyphicon glyphicon-triangle-bottom pull-right"></span></button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <div class="bs-searchbox">
+                                            <input id="routineSearchContent" type="text" class="form-control" autocomplete="off">
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <div>
+                                            <ul class="inner_select" id="routineDataTest">
+
+                                            </ul>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+							</div>
+						</div>
+
+		<div class="col-sm-12">
+
+
+
+
+
+			<div class="main_div">
+				<div class="panel panel-primary">
+					<div class="panel-heading">Program Unit Sequence Schedule</div>
+					<div class="panel-body">
+						<div>
+							<table class="table table-hover table-fixed">
+								<thead >
+							      	<tr>
+							        	<th style="vertical-align: middle; width: 30%;">Program Unit</th>
+							        	<th>Days Until Next Lesson <br/> Completion</th>
+                                        <th>Days Until Next Lesson <br/> Incomplete</th>
+										<th style="opacity: 0; width: 5%;"></th>
+							      	</tr>
+							    </thead>
+							    <tbody id='mainTableBody'>
+							      	<tr id='confirm_appointment_0'>
+										<td  style="width: 30%;"onclick="getInsertPlace(this)" id="td0"><a class="input_border_add form-control"  href="#lessonOne" data-toggle="modal" data-target="#lessonOne">&nbsp;</a>
+										<input type="hidden" onchange="getlessonOneValue(this)" value="123" class="lessonTitle">
+										</td>
+										<td  id=""><a ><input onchange="getlessonOneValue(this)" class="completeLesson form-control" type="number" name="" value=""></a></td>
+										<td id=""><a ><input onkeyup="addNewRowTableOne(this)" onchange="getlessonOneValue(this)" class="incompleteLesson form-control" type="number" name="" value="" readonly ></a></td>
+										<td onclick="removeFirst(this)" style="width: 5%; vertical-align: middle" class="remove" ><i  class="glyphicon glyphicon-trash"></i></td>
+							      	</tr>
+							    </tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+
+
+			<div class="main_div">
+				<div class="panel panel-primary">
+					<div class="panel-heading">Individual Items Schedule</div>
+					<div class="panel-body">
+						<div>
+							<table class="table table-hover table-fixed">
+								<thead >
+							      	<tr>
+							        	<th style="vertical-align: middle ;width: 30%; ">Program Unit</th>
+							        	<th> Send Days After Start</th>
+							        	<th> Expires After Days</th>
+                                        <th>Repetition Interval Days</th>
+                                        <th style="opacity: 0; width: 5%;"></th>
+							      	</tr>
+							    </thead>
+							    <tbody  id='mainTableTwoBody'>
+							      	<tr id= 'confirm_lessonTwo_0'>
+										<td style="width: 30%;" onclick="getInsertPlacelessonTwo(this)" id="lessonTwo0"><a class="input_border_add form-control" href="#lessonTwo" data-toggle="modal" data-target="#lessonTwo">&nbsp;</a>
+										<input type="hidden" value="123" class="lessonTitle">
+										</td>
+										<td id=""><a ><input onchange="getlessonTwoValue(this)" class="completeLesson form-control" type="number" name="" value="" ></a></td>
+										<td id=""><a ><input onchange="getlessonTwoValue(this)" class="incompleteLesson form-control" type="number" name="" value="" ></a></td>
+										<td  id=""><a ><input onkeyup="addNewRowTableTwo(this)" onchange="getlessonTwoValue(this)" class="intervelDays form-control" type="number" name="" value="" readonly></a></td>
+										<td  onclick="removeSecond(this)" style="width: 5%; vertical-align: middle" class="removeContextual" ><i  class="glyphicon glyphicon-trash"></i></td>
+							      	</tr>
+							    </tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<button onclick="saveAllData()" style="padding: 15px 60px; margin-bottom: 20px" class="btn btn-primary">Save</button>
+
+		</div>
+</div>
+
+
+	<!-- Button trigger modal -->
+	<!-- Schedule Lessons Modal -->
+		<div class="modal fade" id="lessonOne" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+			<div class="modal-dialog modal-sm" role="document">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" style="color: #fff;">&times;</span></button>
+						<h4 class="modal-title">Program Units</h4>
+					</div>
+					<div class="modal-body">
+						<ul class="search">
+							<li>
+								<input   id="scheduleLessonsSearch" type="text" class="form-control" placeholder="Search...">
+							</li>
+						</ul>
+						<div class="max_content">
+							<ul id="scheduleLessons">
+							</ul>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	<!-- End Schedule Lessons Modal -->
+
+	<!-- Individual Lessons Modal -->
+	<div class="modal fade" id="lessonTwo" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+		<div class="modal-dialog modal-sm" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" style="color: #fff;">&times;</span></button>
+					<h4 class="modal-title">Program Units</h4>
+				</div>
+				<div class="modal-body">
+					<ul class="search">
+						<li>
+							<input  id="individualLessonsSearch" type="text" class="form-control" placeholder="Search...">
+						</li>
+					</ul>
+					<div class="max_content">
+						<ul id="individualLessons">
+
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+<!-- End Individual Lessons Modal -->
+
+{% endblock %}
